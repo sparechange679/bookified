@@ -718,7 +718,7 @@
     @apply text-lg font-medium text-black mb-2 block;
   }
   .form-input {
-    @apply w-full p-4 bg-white rounded-lg text-lg font-medium text-[#222] placeholder:text-[#999];
+    @apply w-full p-4 bg-white rounded-lg text-lg font-medium text-[#222] placeholder:text-[#999] text-center;
   }
 
   /* ===========================================
