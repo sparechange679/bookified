@@ -2,16 +2,24 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 1. Set up environment variables
+
+Copy `.env.local` and fill in the required values:
+
+```bash
+NEXT_PUBLIC_ELEVENLABS_API_KEY=your_elevenlabs_api_key
+NEXT_PUBLIC_ASSISTANT_ID=your_elevenlabs_agent_id
+```
+
+- **ElevenLabs API Key**: Get this from [ElevenLabs Settings → API Key](https://elevenlabs.io/settings/api).
+- **Assistant ID (Agent ID)**: Create a Conversational AI agent in the [ElevenLabs Dashboard → Agents](https://elevenlabs.io/agent), then copy the Agent ID.
+
+### 2. Run the development server
 
 ```bash
 npm run dev
 # or
-yarn dev
-# or
 pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

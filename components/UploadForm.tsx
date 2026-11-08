@@ -15,9 +15,17 @@ import {parsePDFFile} from '@/lib/utils';
 import {BookUploadFormValues} from '@/types';
 import {useAuth} from "@clerk/nextjs";
 import {toast} from "sonner";
-import {checkBookExists, createBook, saveBookSegments} from "@/lib/actions/book.actions";
+import {checkBookExists, createBook, saveBookSegments, uploadFile} from "@/lib/actions/book.actions";
 import {useRouter} from "next/navigation";
-import {upload} from "@vercel/blob/client";
+// Helper: convert a File/Blob to base64 data URL
+function fileToBase64(file: File | Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
 const UploadForm = () => {
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -67,58 +75,76 @@ const UploadForm = () => {
                 return;
             }
 
-            const uploadedPdfBlob = await upload(fileTitle, pdfFile, {
-                access: 'public',
-                handleUploadUrl: '/api/upload',
-                contentType: 'application/pdf'
-            });
+            // Upload PDF to InsForge storage via server action
+            const pdfKey = `${fileTitle}.pdf`;
+            const pdfBase64 = await fileToBase64(pdfFile);
+            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+            const pdfBase64Data = pdfBase64.split(',')[1];
+            const pdfUploadResult = await uploadFile('books', pdfKey, pdfBase64Data, 'application/pdf');
+
+            if (!pdfUploadResult.success) {
+                console.error('PDF upload error:', pdfUploadResult.error);
+                toast.error("Failed to upload PDF file.");
+                return;
+            }
 
             let coverUrl: string;
+            let coverKey: string;
 
             if (data.coverImage) {
                 const coverFile = data.coverImage;
+                const coverKeyPath = `${fileTitle}_cover.png`;
+                const coverBase64 = await fileToBase64(coverFile);
+                const coverBase64Data = coverBase64.split(',')[1];
+                const coverUploadResult = await uploadFile('covers', coverKeyPath, coverBase64Data, 'image/png');
 
-                const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, coverFile, {
-                    access: 'public',
-                    handleUploadUrl: '/api/upload',
-                    contentType: coverFile.type,
-                });
+                if (!coverUploadResult.success) {
+                    console.error('Cover upload error:', coverUploadResult.error);
+                    toast.error("Failed to upload cover image.");
+                    return;
+                }
 
-                coverUrl = uploadedCoverBlob.url;
+                coverUrl = coverUploadResult.data!.url!;
+                coverKey = coverUploadResult.data!.key!;
             } else {
-                const response = await fetch(parsedPDF.cover);
+                // parsedPDF.cover is a data URL (data:image/png;base64,...)
+                const coverKeyPath = `${fileTitle}_cover.png`;
+                const coverBase64Data = parsedPDF.cover.split(',')[1];
+                const coverUploadResult = await uploadFile('covers', coverKeyPath, coverBase64Data, 'image/png');
 
-                const blob = await response.blob();
+                if (!coverUploadResult.success) {
+                    console.error('Cover upload error:', coverUploadResult.error);
+                    toast.error("Failed to upload generated cover.");
+                    return;
+                }
 
-                const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
-                    access: 'public',
-                    handleUploadUrl: '/api/upload',
-                    contentType: 'image/png',
-                });
-                coverUrl = uploadedCoverBlob.url;
+                coverUrl = coverUploadResult.data!.url!;
+                coverKey = coverUploadResult.data!.key!;
             }
 
             const book = await createBook({
-                clerkId: userId,
+                userId,
                 title: data.title,
                 author: data.author,
                 persona: data.voice,
-                fileURL: uploadedPdfBlob.url,
-                fileBlobKey: uploadedPdfBlob.pathname,
-                coverURL: coverUrl,
+                fileUrl: pdfUploadResult.data!.url!,
+                fileKey: pdfUploadResult.data!.key!,
+                coverUrl,
+                coverKey,
                 fileSize: pdfFile.size,
             });
 
             if (!book.success) throw new Error("Failed to create book");
+            if (!book.data) throw new Error("No book data returned");
 
             if (book.alreadyExists) {
                 toast.info("Book with same title already exists");
                 form.reset();
-                router.push(`/books/${existsCheck.book.slug}`);
+                router.push(`/books/${book.data.slug}`);
                 return;
             }
 
-            const segments = await saveBookSegments(book.data._id, userId, parsedPDF.content);
+            const segments = await saveBookSegments(book.data.id, userId, parsedPDF.content);
 
             if (!segments.success) {
                 toast.error("Failed to save book segments");

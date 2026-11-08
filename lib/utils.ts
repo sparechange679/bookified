@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-// Serialize Mongoose documents to plain JSON objects (strips ObjectId, Date, etc.)
+// Deep clone an object to ensure plain JSON
 export const serializeData = <T>(data: T): T => JSON.parse(JSON.stringify(data));
 
 // Auto generate slug
@@ -27,7 +27,7 @@ export const escapeRegex = (str: string): string => {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// Splits text content into segments for MongoDB storage and search
+// Splits text content into segments for storage and search
 export const splitIntoSegments = (
     text: string,
     segmentSize: number = 500, // Maximum words per segment

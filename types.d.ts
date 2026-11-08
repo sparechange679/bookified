@@ -1,4 +1,3 @@
-import {Document, Types} from 'mongoose';
 import {ReactNode} from 'react';
 import {Control, FieldPath, FieldValues} from 'react-hook-form';
 import {LucideIcon} from 'lucide-react';
@@ -6,47 +5,48 @@ import z from 'zod';
 import {UploadSchema} from '@/lib/zod';
 
 // ============================================
-// DATABASE MODELS
+// DATABASE MODELS (InsForge schema)
 // ============================================
 
-export interface IBook extends Document {
-    _id: string;
-    clerkId: string;
+export interface IBook {
+    id: string;
+    user_id: string;
     title: string;
     slug: string;
     author: string;
-    persona?: string;
-    fileURL: string;
-    fileBlobKey: string;
-    coverURL: string;
-    coverBlobKey?: string;
-    fileSize: number;
-    totalSegments: number;
-    createdAt: Date;
-    updatedAt: Date;
+    persona?: string | null;
+    file_url: string;
+    file_key: string;
+    cover_url?: string | null;
+    cover_key: string;
+    file_size: number;
+    total_segments: number;
+    created_at: string;
+    updated_at: string;
 }
 
-export interface IBookSegment extends Document {
-    clerkId: string;
-    bookId: Types.ObjectId;
+export interface IBookSegment {
+    id: string;
+    user_id: string;
+    book_id: string;
     content: string;
-    segmentIndex: number;
-    pageNumber?: number;
-    wordCount: number;
-    createdAt: Date;
-    updatedAt: Date;
+    segment_index: number;
+    page_number?: number | null;
+    word_count: number;
+    created_at: string;
+    updated_at: string;
 }
 
-export interface IVoiceSession extends Document {
-    _id: string;
-    clerkId: string;
-    bookId: Types.ObjectId;
-    startedAt: Date;
-    endedAt?: Date;
-    durationSeconds: number;
-    billingPeriodStart: Date;
-    createdAt: Date;
-    updatedAt: Date;
+export interface IVoiceSession {
+    id: string;
+    user_id: string;
+    book_id: string;
+    started_at: string;
+    ended_at?: string | null;
+    duration_seconds: number;
+    billing_period_start: string;
+    created_at: string;
+    updated_at: string;
 }
 
 // ============================================
@@ -56,14 +56,14 @@ export interface IVoiceSession extends Document {
 export type BookUploadFormValues = z.infer<typeof UploadSchema>;
 
 export interface CreateBook {
-    clerkId: string;
+    userId: string;
     title: string;
     author: string;
     persona?: string;
-    fileURL: string;
-    fileBlobKey: string;
-    coverURL?: string;
-    coverBlobKey?: string;
+    fileUrl: string;
+    fileKey: string;
+    coverUrl?: string;
+    coverKey?: string;
     fileSize: number;
 }
 
