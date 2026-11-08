@@ -15,6 +15,6 @@ const BookSchema = new Schema<IBook>({
     totalSegments: {type: Number, default: 0},
 }, {timestamps: true});
 
-const Book = models.book || model<IBook>('Book', BookSchema);
+const Book = models.Book || model<IBook>('Book', BookSchema);
 
 export default Book;
