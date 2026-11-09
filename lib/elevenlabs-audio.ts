@@ -8,7 +8,7 @@
 export class BrowserAudioInterface {
     private static readonly SAMPLE_RATE = 16000;
     private static readonly CHANNELS = 1;
-    private static readonly INPUT_FRAMES_PER_BUFFER = 4000; // 250ms at 16kHz
+    private static readonly INPUT_FRAMES_PER_BUFFER = 4096; // ~256ms at 16kHz (must be power of 2)
 
     private audioContext: AudioContext | null = null;
     private mediaStream: MediaStream | null = null;
@@ -25,11 +25,13 @@ export class BrowserAudioInterface {
      * Start capturing microphone audio and set up playback.
      */
     async start(inputCallback: (audio: Buffer) => void): Promise<void> {
+        console.log('[ElevenLabs Audio] Starting audio interface...');
         this.inputCallback = inputCallback;
         this.shouldStop = false;
         this.outputQueue = [];
 
         // Request microphone access
+        console.log('[ElevenLabs Audio] Requesting microphone access...');
         this.mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 sampleRate: { ideal: BrowserAudioInterface.SAMPLE_RATE },
@@ -38,11 +40,13 @@ export class BrowserAudioInterface {
                 noiseSuppression: true,
             },
         });
+        console.log('[ElevenLabs Audio] Microphone access granted');
 
         // Create audio context for input processing
         this.audioContext = new AudioContext({
             sampleRate: BrowserAudioInterface.SAMPLE_RATE,
         });
+        console.log('[ElevenLabs Audio] AudioContext created');
 
         // Create source from microphone
         this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
@@ -54,8 +58,13 @@ export class BrowserAudioInterface {
             BrowserAudioInterface.CHANNELS,
         );
 
+        let audioChunkCount = 0;
         this.scriptNode.onaudioprocess = (event) => {
             if (this.shouldStop) return;
+            audioChunkCount++;
+            if (audioChunkCount % 10 === 0) {
+                console.log('[ElevenLabs Audio] Audio chunks sent:', audioChunkCount);
+            }
 
             const float32Data = event.inputBuffer.getChannelData(0);
             const pcm16 = this.float32ToPcm16(float32Data);
@@ -73,6 +82,7 @@ export class BrowserAudioInterface {
         this.outputContext = new AudioContext({
             sampleRate: BrowserAudioInterface.SAMPLE_RATE,
         });
+        console.log('[ElevenLabs Audio] Audio interface started successfully');
     }
 
     /**

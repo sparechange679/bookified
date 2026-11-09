@@ -5,6 +5,7 @@ import {startVoiceSession, endVoiceSession} from "@/lib/actions/sessions.actions
 import {ElevenLabsClient} from "@elevenlabs/elevenlabs-js/Client";
 import {Conversation} from "@elevenlabs/elevenlabs-js/api/resources/conversationalAi/conversation";
 import {createBrowserAudioInterface} from "@/lib/elevenlabs-audio";
+import {createBrowserWebSocketFactory} from "@/lib/elevenlabs";
 
 export type CallStatus = 'idle' | 'connecting' | 'starting' | 'listening' | 'thinking' | 'speaking';
 
@@ -68,6 +69,10 @@ export const useLabs = (book: IBook) => {
         setStatus('connecting');
 
         try {
+            console.log('[ElevenLabs] Starting voice session...');
+            console.log('[ElevenLabs] Assistant ID:', assistantId);
+            console.log('[ElevenLabs] API Key configured:', !!process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY);
+            
             // Create the voice session in the database
             const result = await startVoiceSession(userId, book.id);
 
@@ -78,6 +83,7 @@ export const useLabs = (book: IBook) => {
             }
 
             sessionIdRef.current = result.sessionId ?? null;
+            console.log('[ElevenLabs] Voice session created:', sessionIdRef.current);
 
             // Initialize ElevenLabs client
             const client = new ElevenLabsClient({
@@ -96,11 +102,15 @@ export const useLabs = (book: IBook) => {
                 agentId: assistantId,
                 requiresAuth: true,
                 audioInterface,
+                webSocketFactory: createBrowserWebSocketFactory(),
                 config: {
                     conversationConfigOverride: {
                         conversation_config_override: {
                             system_message: systemPrompt,
                         },
+                    },
+                    dynamicVariables: {
+                        bookId: book.id,
                     },
                 },
                 callbackAgentResponse: (response: string) => {
@@ -140,23 +150,36 @@ export const useLabs = (book: IBook) => {
 
             conversationRef.current = conversation;
 
-            // Listen for connection events
+            // Listen for all conversation events
             conversation.on('start', () => {
+                console.log('[ElevenLabs] Session started');
                 setStatus('starting');
             });
 
             conversation.on('end', () => {
+                console.log('[ElevenLabs] Session ended');
                 setStatus('idle');
             });
 
             conversation.on('error', (error: any) => {
-                console.error("ElevenLabs conversation error:", error);
+                console.error("[ElevenLabs] Conversation error:", error);
                 setStatus('idle');
                 setLimitError("Connection error. Please try again.");
             });
 
+            conversation.on('session_started', () => {
+                console.log('[ElevenLabs] session_started event fired');
+            });
+
+            conversation.on('conversation_started', (conversationId: string) => {
+                console.log('[ElevenLabs] Conversation started with ID:', conversationId);
+                setStatus('listening');
+            });
+
             // Start the conversation
+            console.log('[ElevenLabs] Starting session...');
             await conversation.startSession();
+            console.log('[ElevenLabs] Session started successfully');
             setStatus('listening');
 
         } catch (e) {

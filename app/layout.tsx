@@ -33,8 +33,9 @@ export default function RootLayout({
         <ClerkProvider>
             <html lang="en" suppressHydrationWarning>
             <body
-                className={`${ibmPlexSerif.variable} ${monaSans.variable} relative font-sans antialiased`}
-            >
+    suppressHydrationWarning
+    className={`${ibmPlexSerif.variable} ${monaSans.variable} relative font-sans antialiased`}
+>
             <Navbar/>
             {children}
             <Toaster/>

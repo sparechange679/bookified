@@ -12,6 +12,7 @@ NEXT_PUBLIC_ASSISTANT_ID=your_elevenlabs_agent_id
 ```
 
 - **ElevenLabs API Key**: Get this from [ElevenLabs Settings → API Key](https://elevenlabs.io/settings/api).
+  - **Important**: The API key must have the `convai_write` permission. When creating or editing your API key, enable the **Conversational AI** scope (read + write). If you see a `401 Unauthorized` error with `"missing_permissions"` and `"convai_write"`, your key needs this permission — create a new key with the correct scope or update the existing one.
 - **Assistant ID (Agent ID)**: Create a Conversational AI agent in the [ElevenLabs Dashboard → Agents](https://elevenlabs.io/agent), then copy the Agent ID.
 
 ### 2. Run the development server
